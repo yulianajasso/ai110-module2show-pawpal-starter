@@ -88,8 +88,17 @@ These were structural gaps — not logic errors — that would have required rev
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+**Tradeoff: greedy priority fill vs. optimal packing**
+
+The scheduler uses a greedy algorithm: it sorts tasks by priority (then shortest duration as a tiebreaker) and assigns them one by one until time runs out. Once a task is placed, the decision is final — the scheduler never backtracks to try a different combination that might fit more tasks overall.
+
+This means a long high-priority task (e.g., a 45-minute vet visit) can consume most of the available time and cause several short medium-priority tasks to be skipped, even though skipping the vet visit would have allowed five other tasks to fit instead.
+
+A more optimal approach — such as a knapsack algorithm — could find the combination of tasks that maximizes total value (weighted by priority) within the time budget. However, that would be significantly more complex to implement and explain, and for a daily pet care app the greedy approach is reasonable: pet owners generally *do* want high-priority tasks like feeding and medication to run first, even if it crowds out lower-priority ones. The greedy result matches the intuition of the user.
+
+**Tradeoff noted during algorithm review: readability vs. conciseness in `detect_conflicts()`**
+
+The AI suggested replacing the explicit `enumerate`/nested-loop pattern with `itertools.combinations`. The combinations version is more Pythonic but calls the `_time_to_minutes()` helper up to 4 times per pair (no caching) and hides the "compare each pair exactly once" intent behind a stdlib function name. The current explicit version was kept because it is easier to read and marginally more efficient.
 
 ---
 
