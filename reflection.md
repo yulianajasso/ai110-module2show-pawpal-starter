@@ -2,10 +2,68 @@
 
 ## 1. System Design
 
-**a. Initial design**
+**a. Core user actions**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+The three core actions a user should be able to perform in PawPal+:
+
+1. **Add and manage a pet profile** — The user enters their pet's basic information (name, species, breed, age). This profile is the foundation for all scheduling; the app needs to know *whose* care is being planned before any tasks make sense.
+
+2. **Add and edit care tasks** — The user creates tasks such as walks, feedings, medication, grooming, or enrichment. Each task has at minimum a duration and a priority level. The user can also edit or remove tasks as the pet's needs change over time.
+
+3. **Generate and view today's schedule** — The user triggers the scheduler, which takes the available time window and the list of tasks, then produces a prioritized daily plan with assigned time slots. The plan also explains the reasoning — which tasks were included, which were skipped, and why — so the owner understands and trusts the output.
+
+**b. Initial design**
+
+The system is built around four main objects:
+
+---
+
+**`Pet`**
+Represents the animal being cared for.
+
+- *Attributes:* `name`, `species`, `breed`, `age`
+- *Methods:*
+  - `get_profile()` — returns a summary of the pet's info for display
+  - `update_info(...)` — allows editing name, breed, or age after creation
+
+---
+
+**`Task`**
+Represents a single care activity.
+
+- *Attributes:* `name`, `duration` (minutes), `priority` (`high` / `medium` / `low`), `recurrence` (`daily` / `weekly` / `as-needed`), `notes`
+- *Methods:*
+  - `is_due_today()` — checks whether the task should appear in today's plan based on recurrence
+  - `to_dict()` — serializes the task for storage or display
+
+---
+
+**`Owner`**
+Represents the person using the app and their daily constraints.
+
+- *Attributes:* `name`, `available_time` (total minutes free today), `preferences` (e.g., preferred start time, tasks to always include)
+- *Methods:*
+  - `set_availability(minutes)` — updates how much time is free today
+  - `get_constraints()` — returns the time and preference constraints the scheduler will use
+
+---
+
+**`Scheduler`**
+Contains the planning logic — the brain of the app.
+
+- *Attributes:* `pet`, `owner`, `tasks` (list of Task objects), `schedule` (ordered list of scheduled slots)
+- *Methods:*
+  - `add_task(task)` — adds a Task to the task list
+  - `remove_task(task_name)` — removes a task by name
+  - `generate_plan()` — sorts tasks by priority, fits them into the available time window, and returns an ordered schedule
+  - `explain_plan()` — returns a human-readable explanation of why each task was included or skipped
+
+---
+
+**Relationships:**
+- `Owner` has one `Pet`
+- `Scheduler` belongs to an `Owner` and holds a list of `Task` objects
+- `Scheduler.generate_plan()` uses both `Owner.get_constraints()` and `Task.is_due_today()` to decide what makes the final schedule
 
 **b. Design changes**
 
