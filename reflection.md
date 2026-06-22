@@ -67,8 +67,15 @@ Contains the planning logic — the brain of the app.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+After reviewing the skeleton with an AI assistant, three gaps were identified and corrected:
+
+1. **Added `pet` attribute to `Owner`** — The UML showed `Owner --> Pet`, but the initial skeleton had no `pet` field on `Owner`. Without it, there was no way to navigate from an owner to their pet. Fixed by adding `self.pet` to `Owner.__init__`.
+
+2. **Added `last_completed` to `Task`** — `is_due_today()` is supposed to handle recurrence (daily vs. weekly), but the original `Task` had no date tracking. A weekly task has no way to know if it was already done this week without storing when it was last completed. Added `last_completed: Optional[str]` (ISO date string).
+
+3. **Added `start_time` to `Owner`** — `generate_plan()` needs to assign actual clock times (e.g., "8:00 AM — Morning walk"). Without a day-start time, the scheduler can only produce a relative order, not a real schedule. Added `start_time: int` (minutes since midnight, defaulting to 480 = 8:00 AM).
+
+These were structural gaps — not logic errors — that would have required revisiting the data model mid-implementation if left unfixed.
 
 ---
 

@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 
@@ -19,10 +19,11 @@ class Pet:
 @dataclass
 class Task:
     name: str
-    duration: int          # minutes
-    priority: str          # "high", "medium", or "low"
-    recurrence: str        # "daily", "weekly", or "as-needed"
+    duration: int                        # minutes
+    priority: str                        # "high", "medium", or "low"
+    recurrence: str                      # "daily", "weekly", or "as-needed"
     notes: str = ""
+    last_completed: Optional[str] = None # ISO date string, e.g. "2026-06-21"
 
     def is_due_today(self) -> bool:
         pass
@@ -32,9 +33,12 @@ class Task:
 
 
 class Owner:
-    def __init__(self, name: str, available_time: int, preferences: Optional[dict] = None):
+    def __init__(self, name: str, available_time: int, pet: "Pet" = None,
+                 start_time: int = 480, preferences: Optional[dict] = None):
         self.name = name
         self.available_time = available_time          # total minutes free today
+        self.pet = pet                                # the pet this owner cares for
+        self.start_time = start_time                  # day start in minutes since midnight (480 = 8:00 AM)
         self.preferences = preferences or {}
 
     def set_availability(self, minutes: int) -> None:
