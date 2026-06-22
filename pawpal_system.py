@@ -1,5 +1,48 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Optional
+
+
+PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+
+
+@dataclass
+class Task:
+    name: str
+    duration: int                         # minutes
+    priority: str                         # "high", "medium", or "low"
+    recurrence: str                       # "daily", "weekly", or "as-needed"
+    notes: str = ""
+    last_completed: Optional[str] = None  # ISO date string e.g. "2026-06-21"
+    completed_today: bool = False
+
+    def is_due_today(self) -> bool:
+        if self.completed_today:
+            return False
+        if self.recurrence == "daily":
+            return True
+        if self.recurrence == "weekly":
+            if self.last_completed is None:
+                return True
+            last = date.fromisoformat(self.last_completed)
+            return (date.today() - last) >= timedelta(days=7)
+        # "as-needed" tasks are always eligible
+        return True
+
+    def mark_complete(self) -> None:
+        self.completed_today = True
+        self.last_completed = date.today().isoformat()
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "duration": self.duration,
+            "priority": self.priority,
+            "recurrence": self.recurrence,
+            "notes": self.notes,
+            "last_completed": self.last_completed,
+            "completed_today": self.completed_today,
+        }
 
 
 @dataclass
@@ -8,61 +51,151 @@ class Pet:
     species: str
     breed: str
     age: int
+    tasks: list = field(default_factory=list)  # list[Task]
 
     def get_profile(self) -> str:
-        pass
+        return f"{self.name} ({self.breed} {self.species}, age {self.age})"
 
-    def update_info(self, name: Optional[str] = None, breed: Optional[str] = None, age: Optional[int] = None) -> None:
-        pass
+    def update_info(self, name: Optional[str] = None, breed: Optional[str] = None,
+                    age: Optional[int] = None) -> None:
+        if name is not None:
+            self.name = name
+        if breed is not None:
+            self.breed = breed
+        if age is not None:
+            self.age = age
 
+    def add_task(self, task: Task) -> None:
+        self.tasks.append(task)
 
-@dataclass
-class Task:
-    name: str
-    duration: int                        # minutes
-    priority: str                        # "high", "medium", or "low"
-    recurrence: str                      # "daily", "weekly", or "as-needed"
-    notes: str = ""
-    last_completed: Optional[str] = None # ISO date string, e.g. "2026-06-21"
+    def remove_task(self, task_name: str) -> None:
+        self.tasks = [t for t in self.tasks if t.name != task_name]
 
-    def is_due_today(self) -> bool:
-        pass
-
-    def to_dict(self) -> dict:
-        pass
+    def get_due_tasks(self) -> list:
+        return [t for t in self.tasks if t.is_due_today()]
 
 
 class Owner:
-    def __init__(self, name: str, available_time: int, pet: "Pet" = None,
+    def __init__(self, name: str, available_time: int,
                  start_time: int = 480, preferences: Optional[dict] = None):
         self.name = name
-        self.available_time = available_time          # total minutes free today
-        self.pet = pet                                # the pet this owner cares for
-        self.start_time = start_time                  # day start in minutes since midnight (480 = 8:00 AM)
+        self.available_time = available_time  # total minutes free today
+        self.start_time = start_time          # minutes since midnight (480 = 8:00 AM)
         self.preferences = preferences or {}
+        self.pets: list[Pet] = []
+
+    def add_pet(self, pet: Pet) -> None:
+        self.pets.append(pet)
+
+    def remove_pet(self, pet_name: str) -> None:
+        self.pets = [p for p in self.pets if p.name != pet_name]
 
     def set_availability(self, minutes: int) -> None:
-        pass
+        self.available_time = minutes
 
     def get_constraints(self) -> dict:
-        pass
+        return {
+            "available_time": self.available_time,
+            "start_time": self.start_time,
+            "preferences": self.preferences,
+        }
+
+    def get_all_tasks(self) -> list:
+        """Return all due tasks across every pet, tagged with the pet's name."""
+        result = []
+        for pet in self.pets:
+            for task in pet.get_due_tasks():
+                result.append((pet, task))
+        return result
 
 
 class Scheduler:
-    def __init__(self, pet: Pet, owner: Owner):
-        self.pet = pet
+    def __init__(self, owner: Owner):
         self.owner = owner
-        self.tasks: list[Task] = []
-        self.schedule: list[dict] = []
+        self.schedule: list[dict] = []   # slots that made the cut
+        self.skipped: list[dict] = []    # tasks that didn't fit or aren't due
 
-    def add_task(self, task: Task) -> None:
-        pass
+    def generate_plan(self) -> list[dict]:
+        """Sort due tasks by priority then greedily fill available time."""
+        self.schedule = []
+        self.skipped = []
 
-    def remove_task(self, task_name: str) -> None:
-        pass
+        constraints = self.owner.get_constraints()
+        time_remaining = constraints["available_time"]
+        cursor = constraints["start_time"]  # current clock position (minutes since midnight)
 
-    def generate_plan(self) -> list:
-        pass
+        candidates = self.owner.get_all_tasks()
+        candidates.sort(key=lambda pair: (PRIORITY_ORDER.get(pair[1].priority, 99), pair[1].name))
+
+        for pet, task in candidates:
+            if task.duration <= time_remaining:
+                end = cursor + task.duration
+                self.schedule.append({
+                    "pet": pet.name,
+                    "task": task.name,
+                    "duration": task.duration,
+                    "priority": task.priority,
+                    "start": _minutes_to_time(cursor),
+                    "end": _minutes_to_time(end),
+                    "notes": task.notes,
+                })
+                cursor = end
+                time_remaining -= task.duration
+            else:
+                self.skipped.append({
+                    "pet": pet.name,
+                    "task": task.name,
+                    "duration": task.duration,
+                    "priority": task.priority,
+                    "reason": "not enough time remaining",
+                })
+
+        return self.schedule
 
     def explain_plan(self) -> str:
-        pass
+        if not self.schedule and not self.skipped:
+            return "No plan generated yet. Call generate_plan() first."
+
+        lines = []
+        if self.schedule:
+            lines.append(f"Daily plan for {self.owner.name}:\n")
+            for slot in self.schedule:
+                lines.append(
+                    f"  {slot['start']} — {slot['end']}  {slot['task']} "
+                    f"({slot['pet']}, {slot['duration']} min, priority: {slot['priority']})"
+                )
+                if slot["notes"]:
+                    lines.append(f"    Note: {slot['notes']}")
+        else:
+            lines.append("No tasks were scheduled.")
+
+        if self.skipped:
+            lines.append("\nSkipped tasks:")
+            for item in self.skipped:
+                lines.append(
+                    f"  - {item['task']} ({item['pet']}): {item['reason']}"
+                )
+
+        return "\n".join(lines)
+
+    def add_task(self, task: Task, pet_name: str) -> None:
+        """Add a task directly to the named pet."""
+        for pet in self.owner.pets:
+            if pet.name == pet_name:
+                pet.add_task(task)
+                return
+        raise ValueError(f"No pet named '{pet_name}' found.")
+
+    def remove_task(self, task_name: str, pet_name: str) -> None:
+        """Remove a task from the named pet."""
+        for pet in self.owner.pets:
+            if pet.name == pet_name:
+                pet.remove_task(task_name)
+                return
+        raise ValueError(f"No pet named '{pet_name}' found.")
+
+
+def _minutes_to_time(minutes: int) -> str:
+    """Convert minutes-since-midnight to a HH:MM string."""
+    h, m = divmod(minutes, 60)
+    return f"{h:02d}:{m:02d}"
