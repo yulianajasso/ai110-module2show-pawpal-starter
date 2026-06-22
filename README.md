@@ -96,14 +96,12 @@ tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [100%]
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.generate_plan()`, `Scheduler.sort_by_time()` | `generate_plan()` sorts candidates by priority → duration → name before assigning slots. `sort_by_time()` re-sorts the finished schedule by HH:MM start time for display. |
+| Filtering | `Scheduler.filter_by_pet(pet_name)`, `Owner.get_tasks_for_pet(pet_name)`, `Owner.get_incomplete_tasks()` | Filter the generated schedule to one pet's slots, or query all tasks by pet name or completion status. |
+| Conflict handling | `Scheduler.detect_conflicts()`, `Scheduler.force_schedule()` | `detect_conflicts()` checks every slot pair for overlapping time windows using the standard interval condition; returns warning strings instead of raising. `force_schedule()` bypasses normal scheduling to inject a task at a fixed time (used for testing). |
+| Recurring tasks | `Task.is_due_today()`, `Task.mark_complete()` | `mark_complete()` uses `timedelta` to compute `next_due`: +1 day for daily, +7 days for weekly, `None` for as-needed. `is_due_today()` uses `next_due` as the primary gate when set. |
 
 ## 📸 Demo Walkthrough
 

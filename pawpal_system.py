@@ -156,7 +156,14 @@ class Scheduler:
         self.skipped: list[dict] = []    # tasks that didn't fit or aren't due
 
     def generate_plan(self) -> list[dict]:
-        """Sort due tasks by priority then greedily fill available time."""
+        """Build today's schedule using a greedy priority-first algorithm.
+
+        Sorts all due tasks by (priority, duration, name) — high-priority and
+        shorter tasks come first. Assigns each task a consecutive time slot
+        starting at owner.start_time, stopping when available_time is exhausted.
+        Tasks that don't fit are recorded in self.skipped with a reason.
+        Returns the list of scheduled slot dicts.
+        """
         self.schedule = []
         self.skipped = []
 
@@ -224,15 +231,29 @@ class Scheduler:
         return "\n".join(lines)
 
     def sort_by_time(self) -> list[dict]:
-        """Return the schedule sorted by start time (HH:MM strings sort correctly lexicographically)."""
+        """Return a copy of the schedule sorted ascending by start time.
+
+        HH:MM strings sort correctly with plain lexicographic comparison, so no
+        time conversion is needed. Does not modify self.schedule in place.
+        """
         return sorted(self.schedule, key=lambda slot: slot["start"])
 
     def filter_by_pet(self, pet_name: str) -> list[dict]:
-        """Return only the scheduled slots that belong to the given pet."""
+        """Return only the scheduled slots that belong to the named pet.
+
+        Useful for displaying a single pet's daily agenda. Returns an empty
+        list (not an error) if no slots exist for that pet.
+        """
         return [slot for slot in self.schedule if slot["pet"] == pet_name]
 
     def detect_conflicts(self) -> list[str]:
-        """Return a warning message for every pair of scheduled slots whose time windows overlap."""
+        """Scan all scheduled slot pairs for overlapping time windows.
+
+        Uses the standard interval-overlap condition: two slots A and B overlap
+        when A.start < B.end AND B.start < A.end. Compares each pair exactly
+        once (O(n²) in slot count). Returns warning strings — never raises.
+        An empty list means no conflicts were found.
+        """
         warnings = []
         for i, a in enumerate(self.schedule):
             a_start = _time_to_minutes(a["start"])
