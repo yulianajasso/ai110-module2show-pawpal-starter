@@ -120,6 +120,22 @@ class Owner:
                 result.append((pet, task))
         return result
 
+    def get_tasks_for_pet(self, pet_name: str) -> list:
+        """Return all tasks (due or not) belonging to the named pet."""
+        for pet in self.pets:
+            if pet.name == pet_name:
+                return list(pet.tasks)
+        return []
+
+    def get_incomplete_tasks(self) -> list:
+        """Return all tasks across every pet that have not been completed today."""
+        result = []
+        for pet in self.pets:
+            for task in pet.tasks:
+                if not task.completed_today:
+                    result.append((pet, task))
+        return result
+
 
 class Scheduler:
     def __init__(self, owner: Owner):
@@ -137,7 +153,12 @@ class Scheduler:
         cursor = constraints["start_time"]  # current clock position (minutes since midnight)
 
         candidates = self.owner.get_all_tasks()
-        candidates.sort(key=lambda pair: (PRIORITY_ORDER.get(pair[1].priority, 99), pair[1].name))
+        # Sort by priority first, then shortest duration (fits more tasks in), then name
+        candidates.sort(key=lambda pair: (
+            PRIORITY_ORDER.get(pair[1].priority, 99),
+            pair[1].duration,
+            pair[1].name,
+        ))
 
         for pet, task in candidates:
             if task.duration <= time_remaining:
@@ -189,6 +210,14 @@ class Scheduler:
                 )
 
         return "\n".join(lines)
+
+    def sort_by_time(self) -> list[dict]:
+        """Return the schedule sorted by start time (HH:MM strings sort correctly lexicographically)."""
+        return sorted(self.schedule, key=lambda slot: slot["start"])
+
+    def filter_by_pet(self, pet_name: str) -> list[dict]:
+        """Return only the scheduled slots that belong to the given pet."""
+        return [slot for slot in self.schedule if slot["pet"] == pet_name]
 
     def add_task(self, task: Task, pet_name: str) -> None:
         """Add a Task to the pet identified by pet_name; raises ValueError if not found."""
