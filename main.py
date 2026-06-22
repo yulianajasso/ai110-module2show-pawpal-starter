@@ -67,6 +67,23 @@ def main():
     print_section(f"Summary: {len(scheduler.schedule)} scheduled, "
                   f"{len(scheduler.skipped)} skipped")
 
+    # ----------------------------------------------------------------
+    # Conflict detection demo
+    # Force two tasks into overlapping time windows to trigger warnings.
+    # Biscuit's "Evening walk" starts at 09:10 — overlaps with the
+    # already-scheduled "Morning walk" (08:20–08:50).
+    # ----------------------------------------------------------------
+    print_section("Conflict Detection Demo")
+    overlap_task = Task("Evening walk", 30, "high", "daily")
+    scheduler.force_schedule(overlap_task, "Biscuit", "08:30")  # overlaps 08:20–08:50
+
+    conflicts = scheduler.detect_conflicts()
+    if conflicts:
+        for warning in conflicts:
+            print(f"  {warning}")
+    else:
+        print("  No conflicts detected.")
+
 
 if __name__ == "__main__":
     main()

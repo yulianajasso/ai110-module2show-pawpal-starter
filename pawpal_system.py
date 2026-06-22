@@ -231,6 +231,36 @@ class Scheduler:
         """Return only the scheduled slots that belong to the given pet."""
         return [slot for slot in self.schedule if slot["pet"] == pet_name]
 
+    def detect_conflicts(self) -> list[str]:
+        """Return a warning message for every pair of scheduled slots whose time windows overlap."""
+        warnings = []
+        for i, a in enumerate(self.schedule):
+            a_start = _time_to_minutes(a["start"])
+            a_end   = _time_to_minutes(a["end"])
+            for b in self.schedule[i + 1:]:
+                b_start = _time_to_minutes(b["start"])
+                b_end   = _time_to_minutes(b["end"])
+                # Two intervals overlap when neither ends before the other starts
+                if a_start < b_end and b_start < a_end:
+                    warnings.append(
+                        f"WARNING: '{a['task']}' ({a['pet']}, {a['start']}–{a['end']}) "
+                        f"overlaps with '{b['task']}' ({b['pet']}, {b['start']}–{b['end']})"
+                    )
+        return warnings
+
+    def force_schedule(self, task: Task, pet_name: str, start_time: str) -> None:
+        """Insert a task at a fixed start time without touching available_time (use to test conflicts)."""
+        start_min = _time_to_minutes(start_time)
+        self.schedule.append({
+            "pet": pet_name,
+            "task": task.name,
+            "duration": task.duration,
+            "priority": task.priority,
+            "start": start_time,
+            "end": _minutes_to_time(start_min + task.duration),
+            "notes": task.notes,
+        })
+
     def add_task(self, task: Task, pet_name: str) -> None:
         """Add a Task to the pet identified by pet_name; raises ValueError if not found."""
         for pet in self.owner.pets:
@@ -252,3 +282,9 @@ def _minutes_to_time(minutes: int) -> str:
     """Convert minutes-since-midnight to a HH:MM string."""
     h, m = divmod(minutes, 60)
     return f"{h:02d}:{m:02d}"
+
+
+def _time_to_minutes(t: str) -> int:
+    """Convert a HH:MM string to minutes since midnight."""
+    h, m = t.split(":")
+    return int(h) * 60 + int(m)
