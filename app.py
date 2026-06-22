@@ -155,39 +155,70 @@ st.header("4. Today's Schedule")
 if st.button("Generate schedule", type="primary"):
     scheduler = Scheduler(owner)
     scheduler.generate_plan()
-    st.session_state.schedule = scheduler.schedule
-    st.session_state.skipped = scheduler.skipped
-    st.session_state.plan_text = scheduler.explain_plan()
+    # Store sorted schedule, skipped list, conflicts, and explanation
+    st.session_state.schedule   = scheduler.sort_by_time()
+    st.session_state.skipped    = scheduler.skipped
+    st.session_state.conflicts  = scheduler.detect_conflicts()
+    st.session_state.plan_text  = scheduler.explain_plan()
 
-if "schedule" in st.session_state and st.session_state.schedule:
-    st.success(f"Scheduled {len(st.session_state.schedule)} task(s), "
-               f"skipped {len(st.session_state.skipped)}.")
+if "schedule" not in st.session_state:
+    st.info("Click 'Generate schedule' to build today's plan.")
 
+elif not st.session_state.schedule and not st.session_state.skipped:
+    st.warning("No tasks were due today or none fit in the available time.")
+
+else:
+    # --- Summary metrics ---
+    total_min = sum(s["duration"] for s in st.session_state.schedule)
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Tasks scheduled", len(st.session_state.schedule))
+    m2.metric("Tasks skipped",   len(st.session_state.skipped))
+    m3.metric("Time used (min)", f"{total_min} / {owner.available_time}")
+
+    # --- Conflict warnings (shown before the table so they can't be missed) ---
+    if st.session_state.conflicts:
+        st.subheader("⚠️ Schedule Conflicts")
+        for warning in st.session_state.conflicts:
+            # Strip the "WARNING: " prefix so the banner stays concise
+            st.warning(warning.replace("WARNING: ", ""))
+    else:
+        st.success("No scheduling conflicts detected.")
+
+    # --- Per-pet filter ---
     st.subheader("Planned tasks")
-    st.dataframe(
-        [{
-            "Time": f"{s['start']} – {s['end']}",
-            "Task": s["task"],
-            "Pet": s["pet"],
-            "Duration (min)": s["duration"],
-            "Priority": s["priority"],
-        } for s in st.session_state.schedule],
-        use_container_width=True,
+    pet_options = ["All pets"] + [p.name for p in owner.pets]
+    filter_pet = st.selectbox("Filter by pet:", pet_options, key="schedule_filter")
+
+    display_slots = (
+        st.session_state.schedule
+        if filter_pet == "All pets"
+        else [s for s in st.session_state.schedule if s["pet"] == filter_pet]
     )
 
-    if st.session_state.skipped:
-        st.subheader("Skipped tasks")
+    if display_slots:
         st.dataframe(
             [{
+                "Time": f"{s['start']} – {s['end']}",
                 "Task": s["task"],
                 "Pet": s["pet"],
-                "Reason": s["reason"],
-            } for s in st.session_state.skipped],
+                "Duration (min)": s["duration"],
+                "Priority": s["priority"],
+                "Notes": s["notes"] or "—",
+            } for s in display_slots],
             use_container_width=True,
         )
+    else:
+        st.info(f"No scheduled tasks for {filter_pet}.")
 
+    # --- Skipped tasks ---
+    if st.session_state.skipped:
+        with st.expander(f"Skipped tasks ({len(st.session_state.skipped)})"):
+            for item in st.session_state.skipped:
+                st.warning(
+                    f"**{item['task']}** ({item['pet']}) — {item['reason']}  "
+                    f"| {item['duration']} min | priority: {item['priority']}"
+                )
+
+    # --- Full text explanation ---
     with st.expander("Full plan explanation"):
         st.text(st.session_state.plan_text)
-
-elif "schedule" in st.session_state and not st.session_state.schedule:
-    st.warning("No tasks were due today or none fit in the available time.")
