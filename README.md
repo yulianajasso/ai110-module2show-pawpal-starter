@@ -206,3 +206,57 @@ The app runs at `http://localhost:8501` after `streamlit run app.py`. A user fol
 - **Duration tiebreaker** — among same-priority tasks, shorter ones are placed first to maximize the number of tasks that fit
 - **Conflict warnings** — shown as amber banners immediately when detected, not buried in output
 - **Recurrence automation** — "Next due" column updates the moment a task is marked complete
+
+### CLI output (`python main.py`)
+
+```
+====================================================
+  Full Schedule (sorted by start time)
+====================================================
+  08:00 — 08:10  Feeding (Luna, 10 min, high)
+  08:10 — 08:20  Litter box (Luna, 10 min, high)
+  08:20 — 08:50  Morning walk (Biscuit, 30 min, high)
+  08:50 — 09:05  Brush coat (Luna, 15 min, medium)
+  09:05 — 09:20  Enrichment toy (Biscuit, 15 min, medium)
+
+====================================================
+  Biscuit's Scheduled Tasks (filtered)
+====================================================
+  08:20 — 08:50  Morning walk (30 min)
+  09:05 — 09:20  Enrichment toy (15 min)
+
+====================================================
+  Incomplete Tasks Across All Pets (filtered)
+====================================================
+  [Biscuit] Enrichment toy — medium priority, due today
+  [Biscuit] Grooming — low priority, due today
+  [Biscuit] Morning walk — high priority, due today
+  [Luna] Brush coat — medium priority, due today
+  [Luna] Vet check — low priority, due today
+  [Luna] Litter box — high priority, due today
+  [Luna] Feeding — high priority, due today
+
+====================================================
+  All of Luna's Tasks (filtered by pet)
+====================================================
+  Brush coat (weekly, medium) — due
+  Vet check (as-needed, low) — due
+  Litter box (daily, high) — due
+  Feeding (daily, high) — due
+
+====================================================
+  Skipped Tasks
+====================================================
+  - Grooming (Biscuit): not enough time remaining
+  - Vet check (Luna): not enough time remaining
+
+====================================================
+  Summary: 5 scheduled, 2 skipped
+====================================================
+
+====================================================
+  Conflict Detection Demo
+====================================================
+  WARNING: 'Morning walk' (Biscuit, 08:20–08:50) overlaps with 'Evening walk' (Biscuit, 08:30–09:00)
+  WARNING: 'Brush coat' (Luna, 08:50–09:05) overlaps with 'Evening walk' (Biscuit, 08:30–09:00)
+```
