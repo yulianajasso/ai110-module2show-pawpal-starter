@@ -1,0 +1,60 @@
+classDiagram
+    class Task {
+        +str name
+        +int duration
+        +str priority
+        +str recurrence
+        +str notes
+        +Optional[str] last_completed
+        +Optional[str] next_due
+        +bool completed_today
+        +is_due_today() bool
+        +mark_complete() None
+        +to_dict() dict
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +int age
+        +list tasks
+        +get_profile() str
+        +update_info(name, breed, age) None
+        +add_task(task) None
+        +remove_task(task_name) None
+        +get_due_tasks() list
+    }
+
+    class Owner {
+        +str name
+        +int available_time
+        +int start_time
+        +dict preferences
+        +list pets
+        +add_pet(pet) None
+        +remove_pet(pet_name) None
+        +set_availability(minutes) None
+        +get_constraints() dict
+        +get_all_tasks() list
+        +get_tasks_for_pet(pet_name) list
+        +get_incomplete_tasks() list
+    }
+
+    class Scheduler {
+        +Owner owner
+        +list schedule
+        +list skipped
+        +generate_plan() list
+        +explain_plan() str
+        +sort_by_time() list
+        +filter_by_pet(pet_name) list
+        +detect_conflicts() list
+        +force_schedule(task, pet_name, start_time) None
+        +add_task(task, pet_name) None
+        +remove_task(task_name, pet_name) None
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Pet "1" --> "*" Task : has
+    Scheduler --> Owner : reads constraints and tasks from
