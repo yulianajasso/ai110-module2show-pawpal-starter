@@ -83,6 +83,8 @@ These were structural gaps — not logic errors — that would have required rev
 
 **a. Constraints and priorities**
 
+*What constraints does your scheduler consider (for example: time, priority, preferences)? How did you decide which constraints mattered most?*
+
 The scheduler considers three constraints:
 
 1. **Available time** — the owner sets how many minutes they have free today. No task can be scheduled if the remaining time is smaller than its duration. This is the hardest constraint: the scheduler stops accepting tasks the moment time runs out.
@@ -94,6 +96,8 @@ The scheduler considers three constraints:
 Available time was treated as the most important constraint because it is a hard physical limit — there is no way to schedule more minutes than exist. Priority was ranked second because the whole value of a scheduler is ensuring critical care (medication, feeding) always happens. Recurrence was a natural filter applied before the scheduler even sees the task list.
 
 **b. Tradeoffs**
+
+*Describe one tradeoff your scheduler makes. Why is that tradeoff reasonable for this scenario?*
 
 **Tradeoff: greedy priority fill vs. optimal packing**
 
@@ -113,6 +117,8 @@ The AI suggested replacing the explicit `enumerate`/nested-loop pattern with `it
 
 **a. How you used AI**
 
+*How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)? What kinds of prompts or questions were most helpful?*
+
 AI was used in four distinct roles across the project:
 
 - **Design brainstorming** — in the early phases, asking "what classes does a pet care scheduler need and what should each one own?" produced the initial four-class structure (Pet, Task, Owner, Scheduler) quickly. Describing the system in plain English and letting AI suggest the structure was faster and more thorough than working from a blank page.
@@ -126,6 +132,8 @@ AI was used in four distinct roles across the project:
 The most effective prompt pattern was attaching the actual file and asking a specific, scoped question rather than a broad one. "Based on my skeleton, what structural gaps do you see?" produced five actionable findings. "How should I design a scheduler?" would have produced a generic answer.
 
 **b. Judgment and verification**
+
+*Describe one moment where you did not accept an AI suggestion as-is. How did you evaluate or verify what the AI suggested?*
 
 During the algorithm review phase, the AI suggested replacing the explicit `enumerate`/nested-loop in `detect_conflicts()` with `itertools.combinations`. The suggestion was technically correct — `combinations(schedule, 2)` produces exactly the same pairs — and it is the more Pythonic pattern.
 
@@ -141,6 +149,8 @@ How separate chat sessions helped: keeping the algorithmic work in a separate se
 
 **a. What you tested**
 
+*What behaviors did you test? Why were these tests important?*
+
 23 automated tests across seven areas:
 
 - **Recurrence logic** — whether `is_due_today()` correctly gates tasks by their `next_due` date, including the boundary conditions (not due the day before, due on the exact day).
@@ -154,6 +164,8 @@ How separate chat sessions helped: keeping the algorithmic work in a separate se
 These tests mattered because the scheduler's value depends entirely on it being correct. If `is_due_today()` has an off-by-one error, weekly tasks would be scheduled too early. If priority sorting is wrong, medication could be skipped in favour of enrichment. Automated tests make those guarantees verifiable in milliseconds on every future change.
 
 **b. Confidence**
+
+*How confident are you that your scheduler works correctly? What edge cases would you test next if you had more time?*
 
 ⭐⭐⭐⭐ (4/5). The core scheduling logic is well covered and all 23 tests pass. One star is withheld for two reasons: the tests run against in-memory objects only, so there are no integration tests for the Streamlit UI layer or for session persistence across page refreshes. A user interaction like refreshing the page mid-session, or adding the same pet name twice, could expose untested edge cases.
 
@@ -169,15 +181,21 @@ Edge cases to test next:
 
 **a. What went well**
 
+*What part of this project are you most satisfied with?*
+
 The part of this project I'm most satisfied with is the separation between the logic layer (`pawpal_system.py`) and the interface layer (`app.py`). Every scheduling decision — priority ordering, time budget enforcement, recurrence, conflict detection — lives in Python classes that can be tested independently of Streamlit. This made it possible to write 23 automated tests that run in under a second and verify the scheduler's behavior without ever opening a browser. It also made the UI code clean: `app.py` imports the classes and calls their methods; it does not contain any scheduling logic itself.
 
 **b. What you would improve**
+
+*If you had another iteration, what would you improve or redesign?*
 
 If I had another iteration, I would add persistence — right now the entire Owner, Pet, and Task state lives in `st.session_state` and disappears when the browser tab closes. A simple JSON save/load on the Owner object would let the app remember pets and tasks between sessions, which is the most obvious gap between a demo and a real tool a pet owner would actually use day to day.
 
 I would also redesign the conflict detection to work proactively during `generate_plan()` rather than as a separate post-hoc check. Right now, `detect_conflicts()` can only find conflicts introduced by `force_schedule()` (since the greedy algorithm is inherently sequential and self-conflict-free). Making conflict detection part of the planning loop would make it meaningful for real scheduling scenarios where a user might manually assign time windows to tasks.
 
 **c. Key takeaway**
+
+*What is one important thing you learned about designing systems or working with AI on this project?*
 
 The most important thing I learned is that being the "lead architect" in an AI-assisted workflow means owning the *why*, not just the *what*. AI can generate correct code quickly, but it doesn't know which tradeoffs matter for this specific app and this specific user. The decision to keep the explicit `enumerate` loop instead of `itertools.combinations`, to use a greedy algorithm instead of a knapsack solver, to store tasks on `Pet` rather than on `Scheduler` — none of those are objectively right or wrong. They are right *for this system* because of specific constraints: readability for a student codebase, simplicity matching a pet owner's mental model, and separation of concerns for testability.
 
