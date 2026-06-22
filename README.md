@@ -73,16 +73,25 @@ Skipped tasks:
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest tests/test_pawpal.py -v
 
 # Run with coverage:
-pytest --cov
+python -m pytest --cov
 ```
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/yuli/Desktop/ai110-module2show-pawpal-starter-1
+collecting ... collected 3 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 33%]
+tests/test_pawpal.py::test_mark_complete_sets_last_completed PASSED      [ 66%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [100%]
+
+============================== 3 passed in 0.01s ===============================
 ```
 
 ## 📐 Smarter Scheduling
