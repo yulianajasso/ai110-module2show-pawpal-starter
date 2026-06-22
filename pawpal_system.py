@@ -17,6 +17,7 @@ class Task:
     completed_today: bool = False
 
     def is_due_today(self) -> bool:
+        """Return True if this task should appear in today's schedule."""
         if self.completed_today:
             return False
         if self.recurrence == "daily":
@@ -30,10 +31,12 @@ class Task:
         return True
 
     def mark_complete(self) -> None:
+        """Mark this task as done today and record today's date as last_completed."""
         self.completed_today = True
         self.last_completed = date.today().isoformat()
 
     def to_dict(self) -> dict:
+        """Serialize this task to a plain dictionary for storage or display."""
         return {
             "name": self.name,
             "duration": self.duration,
@@ -54,10 +57,12 @@ class Pet:
     tasks: list = field(default_factory=list)  # list[Task]
 
     def get_profile(self) -> str:
+        """Return a one-line summary of the pet's name, breed, species, and age."""
         return f"{self.name} ({self.breed} {self.species}, age {self.age})"
 
     def update_info(self, name: Optional[str] = None, breed: Optional[str] = None,
                     age: Optional[int] = None) -> None:
+        """Update any combination of name, breed, or age; unchanged fields are left as-is."""
         if name is not None:
             self.name = name
         if breed is not None:
@@ -66,12 +71,15 @@ class Pet:
             self.age = age
 
     def add_task(self, task: Task) -> None:
+        """Append a Task to this pet's task list."""
         self.tasks.append(task)
 
     def remove_task(self, task_name: str) -> None:
+        """Remove all tasks whose name matches task_name."""
         self.tasks = [t for t in self.tasks if t.name != task_name]
 
     def get_due_tasks(self) -> list:
+        """Return only the tasks that are due today."""
         return [t for t in self.tasks if t.is_due_today()]
 
 
@@ -85,15 +93,19 @@ class Owner:
         self.pets: list[Pet] = []
 
     def add_pet(self, pet: Pet) -> None:
+        """Add a Pet to this owner's pet list."""
         self.pets.append(pet)
 
     def remove_pet(self, pet_name: str) -> None:
+        """Remove the pet with the given name from the owner's list."""
         self.pets = [p for p in self.pets if p.name != pet_name]
 
     def set_availability(self, minutes: int) -> None:
+        """Update the total minutes the owner has free today."""
         self.available_time = minutes
 
     def get_constraints(self) -> dict:
+        """Return available time, day start time, and preferences as a dict."""
         return {
             "available_time": self.available_time,
             "start_time": self.start_time,
@@ -179,7 +191,7 @@ class Scheduler:
         return "\n".join(lines)
 
     def add_task(self, task: Task, pet_name: str) -> None:
-        """Add a task directly to the named pet."""
+        """Add a Task to the pet identified by pet_name; raises ValueError if not found."""
         for pet in self.owner.pets:
             if pet.name == pet_name:
                 pet.add_task(task)
@@ -187,7 +199,7 @@ class Scheduler:
         raise ValueError(f"No pet named '{pet_name}' found.")
 
     def remove_task(self, task_name: str, pet_name: str) -> None:
-        """Remove a task from the named pet."""
+        """Remove a task by name from the pet identified by pet_name; raises ValueError if not found."""
         for pet in self.owner.pets:
             if pet.name == pet_name:
                 pet.remove_task(task_name)
