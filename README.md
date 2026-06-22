@@ -71,28 +71,67 @@ Skipped tasks:
 
 ## 🧪 Testing PawPal+
 
+### How to run
+
 ```bash
 # Run the full test suite:
 python -m pytest tests/test_pawpal.py -v
-
-# Run with coverage:
-python -m pytest --cov
 ```
 
-Sample test output:
+### What the tests cover
+
+23 automated tests across 6 areas:
+
+| Area | What's verified |
+|------|----------------|
+| **Recurrence logic** | Daily tasks are due every day; weekly tasks become due again after 7 days; `mark_complete()` sets `next_due` correctly via `timedelta` |
+| **Task completion** | `mark_complete()` flips `completed_today`, records `last_completed`, computes `next_due` for daily/weekly, leaves `next_due` as `None` for as-needed |
+| **Pet management** | Adding/removing tasks updates the count; a pet with no tasks returns an empty due list |
+| **Priority ordering** | High-priority tasks are scheduled before low; when priority ties, shorter tasks come first |
+| **Time budget** | Tasks that exactly fit are scheduled; tasks 1 minute over are skipped; zero available time skips everything; no pets produces an empty schedule |
+| **Sorting & filtering** | `sort_by_time()` returns chronological order; `filter_by_pet()` isolates one pet's slots; unknown pet name returns empty list |
+| **Conflict detection** | A clean sequential schedule has no conflicts; a force-scheduled overlap triggers a warning; adjacent (touching) slots do not count as conflicts |
+
+### Test output
 
 ```
 ============================= test session starts ==============================
 platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
 rootdir: /Users/yuli/Desktop/ai110-module2show-pawpal-starter-1
-collecting ... collected 3 items
+collecting ... collected 23 items
 
-tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 33%]
-tests/test_pawpal.py::test_mark_complete_sets_last_completed PASSED      [ 66%]
-tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [100%]
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  4%]
+tests/test_pawpal.py::test_mark_complete_sets_last_completed PASSED      [  8%]
+tests/test_pawpal.py::test_daily_task_next_due_is_tomorrow PASSED        [ 13%]
+tests/test_pawpal.py::test_weekly_task_next_due_is_seven_days PASSED     [ 17%]
+tests/test_pawpal.py::test_completed_daily_task_not_due_today PASSED     [ 21%]
+tests/test_pawpal.py::test_as_needed_task_has_no_next_due PASSED         [ 26%]
+tests/test_pawpal.py::test_weekly_task_not_due_before_seven_days PASSED  [ 30%]
+tests/test_pawpal.py::test_weekly_task_due_after_seven_days PASSED       [ 34%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 39%]
+tests/test_pawpal.py::test_pet_with_no_tasks_returns_empty_due_list PASSED [ 43%]
+tests/test_pawpal.py::test_remove_task_reduces_count PASSED              [ 47%]
+tests/test_pawpal.py::test_high_priority_scheduled_before_low PASSED     [ 52%]
+tests/test_pawpal.py::test_same_priority_shorter_task_scheduled_first PASSED [ 56%]
+tests/test_pawpal.py::test_task_exactly_fitting_available_time_is_scheduled PASSED [ 60%]
+tests/test_pawpal.py::test_task_one_minute_over_budget_is_skipped PASSED [ 65%]
+tests/test_pawpal.py::test_owner_with_zero_minutes_skips_everything PASSED [ 69%]
+tests/test_pawpal.py::test_owner_with_no_pets_produces_empty_schedule PASSED [ 73%]
+tests/test_pawpal.py::test_sort_by_time_returns_chronological_order PASSED [ 78%]
+tests/test_pawpal.py::test_filter_by_pet_returns_only_that_pets_slots PASSED [ 82%]
+tests/test_pawpal.py::test_filter_by_unknown_pet_returns_empty_list PASSED [ 86%]
+tests/test_pawpal.py::test_no_conflicts_in_normal_schedule PASSED        [ 91%]
+tests/test_pawpal.py::test_forced_overlap_triggers_conflict_warning PASSED [ 95%]
+tests/test_pawpal.py::test_adjacent_slots_do_not_conflict PASSED         [100%]
 
-============================== 3 passed in 0.01s ===============================
+============================== 23 passed in 0.02s ==============================
 ```
+
+### Confidence level
+
+⭐⭐⭐⭐ (4/5)
+
+The core scheduling logic — priority ordering, time budget enforcement, recurrence, and conflict detection — is well covered. One star withheld because the tests run against in-memory objects only; there are no integration tests covering the Streamlit UI layer or persistence across sessions, so edge cases introduced by user interaction remain untested.
 
 ## 📐 Smarter Scheduling
 
