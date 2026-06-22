@@ -14,26 +14,37 @@ class Task:
     recurrence: str                       # "daily", "weekly", or "as-needed"
     notes: str = ""
     last_completed: Optional[str] = None  # ISO date string e.g. "2026-06-21"
+    next_due: Optional[str] = None        # ISO date string for next scheduled occurrence
     completed_today: bool = False
 
+    # How many days until this recurrence repeats
+    _RECURRENCE_DAYS = {"daily": 1, "weekly": 7}
+
     def is_due_today(self) -> bool:
-        """Return True if this task should appear in today's schedule."""
+        """Return True if today is on or after next_due, or if the task has never been completed."""
+        today = date.today()
+        if self.next_due is not None:
+            return today >= date.fromisoformat(self.next_due)
+        # Fallback for tasks that have never been completed
         if self.completed_today:
             return False
-        if self.recurrence == "daily":
-            return True
-        if self.recurrence == "weekly":
-            if self.last_completed is None:
-                return True
+        if self.recurrence == "weekly" and self.last_completed is not None:
             last = date.fromisoformat(self.last_completed)
-            return (date.today() - last) >= timedelta(days=7)
-        # "as-needed" tasks are always eligible
+            return (today - last) >= timedelta(days=7)
+        # daily and as-needed with no history are always due
         return True
 
     def mark_complete(self) -> None:
-        """Mark this task as done today and record today's date as last_completed."""
+        """Mark done today and calculate next_due via timedelta based on recurrence."""
+        today = date.today()
         self.completed_today = True
-        self.last_completed = date.today().isoformat()
+        self.last_completed = today.isoformat()
+        interval = self._RECURRENCE_DAYS.get(self.recurrence)
+        if interval:
+            self.next_due = (today + timedelta(days=interval)).isoformat()
+        else:
+            # as-needed: no automatic next occurrence
+            self.next_due = None
 
     def to_dict(self) -> dict:
         """Serialize this task to a plain dictionary for storage or display."""
@@ -44,6 +55,7 @@ class Task:
             "recurrence": self.recurrence,
             "notes": self.notes,
             "last_completed": self.last_completed,
+            "next_due": self.next_due,
             "completed_today": self.completed_today,
         }
 

@@ -97,10 +97,28 @@ if selected_pet.tasks:
             "Duration (min)": t["duration"],
             "Priority": t["priority"],
             "Recurrence": t["recurrence"],
-            "Done today": t["completed_today"],
+            "Done today": "✓" if t["completed_today"] else "",
+            "Next due": t["next_due"] or "—",
         } for t in task_data],
         use_container_width=True,
     )
+
+    st.caption("Mark a task complete to automatically schedule its next occurrence.")
+    task_names = [t.name for t in selected_pet.tasks if not t.completed_today]
+    if task_names:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            task_to_complete = st.selectbox("Mark complete:", task_names, key="complete_select")
+        with col2:
+            st.write("")
+            if st.button("Mark done"):
+                for t in selected_pet.tasks:
+                    if t.name == task_to_complete:
+                        t.mark_complete()
+                        st.success(f"'{t.name}' marked complete. Next due: {t.next_due or 'N/A'}")
+                        st.rerun()
+    else:
+        st.success("All tasks for this pet are done today!")
 else:
     st.info(f"No tasks for {selected_pet_name} yet.")
 
